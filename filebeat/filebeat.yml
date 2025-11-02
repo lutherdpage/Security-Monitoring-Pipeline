@@ -1,0 +1,20 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      # You can collect logs from Docker containers
+      - /var/lib/docker/containers/*/*.log
+      # Add any Windows logs you want, e.g., Event Logs, if using Winlogbeat instead
+    json.keys_under_root: true
+    json.add_error_key: true
+
+# Output to Elasticsearch (point to the service name in Docker network)
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  username: "elastic"        # default user if you haven't changed it
+  password: "changeme"       # replace with your password
+  ssl.enabled: false          # disable SSL for local dev
+
+# Setup Kibana dashboards
+setup.kibana:
+  host: "http://kibana:5601"
