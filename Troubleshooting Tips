@@ -1,0 +1,97 @@
+# 🧰 Troubleshooting Guide
+
+## 1. Elasticsearch Container Fails to Start
+**Possible Cause:** Port 9200 already in use or existing container conflict.  
+**Fix:**
+```bash
+docker ps
+docker stop elasticsearch
+docker rm elasticsearch
+docker run -d --name elasticsearch --net elk-network -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+```
+
+---
+
+## 2. Kibana Container Fails to Start
+**Possible Cause:** Port 5601 in use or existing Kibana container running.  
+**Fix:**
+```bash
+docker ps
+docker stop kibana
+docker rm kibana
+docker run -d --name kibana --net elk-network -p 5601:5601 docker.elastic.co/kibana/kibana:8.11.0
+```
+
+---
+
+## 3. Filebeat Container Error: “Invalid Reference Format”
+**Possible Cause:** PowerShell does not interpret `$(pwd)` correctly.  
+**Fix (Windows PowerShell):**
+```bash
+docker run -d --name filebeat --net elk-network `
+-v ${PWD}/filebeat.yml:/usr/share/filebeat/filebeat.yml `
+-v /var/lib/docker/containers:/var/lib/docker/containers:ro `
+docker.elastic.co/beats/filebeat:8.11.0
+```
+**Fix (Linux/Mac):**
+```bash
+docker run -d --name filebeat --net elk-network -v $(pwd)/filebeat.yml:/usr/share/filebeat/filebeat.yml -v /var/lib/docker/containers:/var/lib/docker/containers:ro docker.elastic.co/beats/filebeat:8.11.0
+```
+
+---
+
+## 4. Kibana UI Not Loading (http://localhost:5601)
+**Possible Cause:** Elasticsearch not healthy or Kibana not connected yet.  
+**Fix:**
+- Wait 30–60 seconds after starting all containers.  
+- Verify Elasticsearch is up:
+  ```bash
+  curl -X GET "localhost:9200/_cluster/health?pretty"
+  ```
+  Status should show `"status": "yellow"` or `"green"`.
+
+---
+
+## 5. No Logs Showing in Kibana
+**Possible Cause:** Filebeat not properly forwarding logs.  
+**Fix:**
+- Check Filebeat logs:
+  ```bash
+  docker logs filebeat
+  ```
+- Verify Elasticsearch index exists:
+  ```bash
+  docker exec -it elasticsearch curl -s "http://localhost:9200/_cat/indices?v"
+  ```
+  Look for an index starting with `.ds-filebeat-`.
+
+---
+
+## 6. Docker Network Errors
+**Possible Cause:** `elk-network` not created.  
+**Fix:**
+```bash
+docker network create elk-network
+```
+
+---
+
+## 7. Permissions Errors with Filebeat Volumes
+**Possible Cause:** Windows path or permissions issue when mapping volumes.  
+**Fix:**
+- Make sure you’re in the `filebeat` directory.
+- Run PowerShell as Administrator.
+- Double-check the local file path:
+  ```bash
+  Get-Location
+  ```
+
+---
+
+## 8. General Cleanup
+If you want to reset the environment completely:
+```bash
+docker stop elasticsearch kibana filebeat
+docker rm elasticsearch kibana filebeat
+docker network rm elk-network
+```
