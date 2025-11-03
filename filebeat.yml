@@ -1,0 +1,13 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/*.log
+    - /var/log/syslog
+    - /var/log/auth.log
+
+output.elasticsearch:
+  hosts: ['http://host.docker.internal:9200']  # <--- change here
+
+setup.kibana:
+  host: "http://host.docker.internal:5601"    # <--- change here
